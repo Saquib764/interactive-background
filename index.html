@@ -11,22 +11,27 @@
     <div class="container">
         <div class="bg"></div>
         <div class="content">
-            <h1>Interactive Background</h1>
+            <h1>Interactive Backgrounds</h1>
             <p>Hover over the background to see the effect.</p>
         </div>
     </div>
 </body>
-<script src="js/index.min.js"></script>
+
+<!-- <script src="js/index.js"></script> -->
+<!-- <script src="js/index.min.js"></script> -->
+<script src="https://cdn.jsdelivr.net/gh/Saquib764/interactive-background@main/js/index.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
 
   const image_url = 'https://firebasestorage.googleapis.com/v0/b/saquib-sh.appspot.com/o/depth-2d-to-3d%2F61238.png?alt=media'
-  const depth_url = 'https://replicate.delivery/pbxt/NYwti60mUQa2F5ZneVRt21D9RE69BBqXeWa0EQAEPUa3waSSA/depth.png'
+  const depth_url = 'https://firebasestorage.googleapis.com/v0/b/saquib-sh.appspot.com/o/depth-2d-to-3d%2F97986_depth.png?alt=media'
 
   const scale = 3.0
   const sensitivity = 0.1
   // const render_mode = 'point_cloud'
   const render_mode = 'surface'
+  const focus = 230
+  const aperture = 0.0005
 
   const parent = document.createElement('div')
   let style = {
@@ -39,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function() {
     zIndex: -1,
   }
   Object.assign(parent.style, style)
-  init(parent, image_url, depth_url, scale, sensitivity, render_mode)
+  init(parent, image_url, depth_url, scale, sensitivity, render_mode, focus, aperture)
   document.body.appendChild(parent)
 });
 </script>

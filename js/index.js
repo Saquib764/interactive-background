@@ -1,4 +1,5 @@
 // Function to dynamically load the Three.js library
+
 async function load_script(url) {
   return new Promise((resolve, reject) => {
     var script = document.createElement('script');
@@ -12,7 +13,6 @@ async function load_script(url) {
   })
 }
 
-
 function setup_renderer() {
   const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -21,8 +21,9 @@ function setup_renderer() {
       preserveDrawingBuffer: true,
   });
   renderer.setClearColor("#ffffff")
-  // renderer.setPixelRatio(window.devicePixelRatio)
+  renderer.setPixelRatio(window.devicePixelRatio)
   // renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setRenderTarget(null);
   return renderer
 }
 
@@ -45,6 +46,25 @@ function setup_camera() {
   return camera
 }
 
+function setup_composer(renderer, scene, camera, focus, aperture) {
+  const composer = new THREE.EffectComposer(renderer)
+  composer.addPass(new THREE.RenderPass(scene, camera))
+
+  const bokehPass = new THREE.BokehPass( scene, camera, {
+    focus: focus,
+    aperture: aperture,
+    maxblur: 0.01,
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+  composer.addPass(bokehPass);
+
+  // const outputPass = new THREE.OutputPass();
+  // composer.addPass(outputPass)
+
+  return composer
+}
+
 function getImageFromUrl(url) {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -65,8 +85,18 @@ function getImageFromUrl(url) {
 }
 
 // Initialization function
-async function init(parent, image_url, depth_url, scale, sensitivity, render_mode) {
+async function init(parent, image_url, depth_url, scale, sensitivity, render_mode, focus, aperture) {
   await load_script('https://cdn.jsdelivr.net/npm/three@0.126.1/build/three.min.js')
+  
+
+  if(aperture > 0.0) {
+    await load_script('https://cdn.jsdelivr.net/npm/three/examples/js/postprocessing/EffectComposer.js')
+    await load_script('https://cdn.jsdelivr.net/npm/three/examples/js/shaders/CopyShader.js')
+    await load_script('https://cdn.jsdelivr.net/npm/three/examples/js/postprocessing/RenderPass.js')
+    await load_script('https://cdn.jsdelivr.net/npm/three/examples/js/postprocessing/ShaderPass.js')
+    await load_script('https://cdn.jsdelivr.net/npm/three/examples/js/shaders/BokehShader.js')
+    await load_script('https://cdn.jsdelivr.net/npm/three/examples/js/postprocessing/BokehPass.js')
+  }
 
   // load jsfeat
   await load_script('https://cdn.jsdelivr.net/npm/jsfeat/build/jsfeat.js')
@@ -74,9 +104,13 @@ async function init(parent, image_url, depth_url, scale, sensitivity, render_mod
   const scene = setup_scene()
   const camera = setup_camera()
   const renderer = setup_renderer()
-
+  let composer;
 
   parent.appendChild(renderer.domElement);
+  if(aperture > 0.0) {
+    composer = setup_composer(renderer, scene, camera, focus, aperture)
+  }
+
 
   const M = Math.pow(2, 32)
 
@@ -341,15 +375,25 @@ async function init(parent, image_url, depth_url, scale, sensitivity, render_mod
     model.rotation.x = 0.1 * sensitivity * y * Math.PI
     model.rotation.y = -0.1 * sensitivity * x * Math.PI
   })
-  window.addEventListener('resize', ()=> {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-  }, false)
+
+  let resize = new ResizeObserver(()=> {
+    let width = parent.clientWidth
+    let height = parent.clientHeight
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+    if(composer) {
+      composer.setSize(width, height)
+    }
+  }).observe(parent)
 
   function animate() {
-      requestAnimationFrame(animate);
+    requestAnimationFrame(animate);
+    if(!composer) {
       renderer.render(scene, camera);
+    }else{
+      composer.render()
+    }
   }
 
   animate();
